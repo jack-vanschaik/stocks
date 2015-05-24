@@ -4,6 +4,7 @@ import java.math.*;
 import java.io.*;
 import java.util.*;
 import java.lang.Thread;
+import java.sql.*;
 
 /*
 java -classpath .:/home/jack/code/stocks/java/lib/YahooFinanceAPI-1.3.0.jar StockReader
@@ -21,16 +22,55 @@ javac -classpath .:/home/jack/code/stocks/java/lib/YahooFinanceAPI-1.3.0.jar Sto
 */
 
 public class StockReader implements Runnable{
- 
+    
+    Connection connection;
     public static final int POOL_SIZE = 100;
     public static final int SLEEP_TIME = 1000*60*5;
     public static final String TICKER_FILE = "tickers.txt";
     public static Object key = new Object();
     private String[] tickerList;
     
+    
+    /*
+    * Opens a connetion to the database and sets global variable
+    */
+    public void openConnection () throws SQLException, IOException {
+      	String url = "jdbc:mysql://localhost:3306/STOCKS";
+      	String username = "root";
+      	String password = "asecret";
+
+		connection = DriverManager.getConnection( url, username, password);
+   	}
+
+    /*
+    * Adds a new table with named by the ticker
+    */	
+	public void createTable( String ticker ) throws SQLException, IOException {
+		openConnection();
+        Statement stat = connection.createStatement();
+			
+		// Create the table for that stock ticker
+        stat.executeUpdate("CREATE TABLE " + ticker + "(date DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, price FLOAT, PRIMARY KEY (date))");
+	}
+    
+    
+    /*
+    * Adds a new price entry to the TICKER table with the current time and date
+    */
+    public void insertPrice ( String ticker, float price ) throws SQLException, IOException {
+		String query = "INSERT INTO ? ( date , price ) VALUES ( DEFAULT , ? )";
+		PreparedStatement stat = connection.prepareStatement(query);
+		stat.setString( 1, ticker );
+		stat.setFloat( 2, price );
+        // For efficiency this could later be modified to insert multiple  
+		stat.close();
+	}
+    
+    
     public StockReader(String[] tickerList) {
         this.tickerList = tickerList;
     }
+   
    
     public void run() {
         boolean loop = true;
