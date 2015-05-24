@@ -4,6 +4,8 @@ import java.math.*;
 import java.io.*;
 import java.util.*;
 import java.lang.Thread;
+import java.util.logging.*;
+import java.sql.*;
 
 /*
 java -classpath .:/home/jack/code/stocks/java/lib/YahooFinanceAPI-1.3.0.jar StockReader
@@ -25,6 +27,8 @@ public class StockReader implements Runnable{
     public static final int POOL_SIZE = 100;
     public static final int SLEEP_TIME = 1000*60*5;
     public static final String TICKER_FILE = "tickers.txt";
+    public static final String MYSQL_CONNECTION = 
+        "jdbc:mysql://localhost/test?user=root&password=asecret";
     public static Object key = new Object();
     private String[] tickerList;
     
@@ -53,8 +57,45 @@ public class StockReader implements Runnable{
     
     // TODO 
     public synchronized void mysqlDeposit(String tickerName, StockQuote squote) {
-        
+        System.out.println(tickerName);
     }
+    
+    /*
+    * Checks to see if each ticker has it's own table.
+    * If not, it creates it.
+    */
+    public void checkTables(ArrayList<String[]> al) {
+        Connection conn = null;
+        Statement s = null;
+        ResultSet res = null;
+        try {
+            //queries to get all the tables
+            conn = DriverManager.getConnection(MYSQL_CONNECTION);
+            s = conn.createStatement();
+            res = s.executeQuery("SHOW TABLES");
+            //get the table list as an ArrayList for easy indexOf
+            String[] ta = (String[])res.getArray(0).getArray();
+            ArrayList<String> tables = new ArrayList<String>(Arrays.asList(ta));
+            
+            //look through our ArrayList of ticker pools and make sure each
+            // ticker has it's own table
+            for (int i = 0; i < al.size(); i ++ ) {
+                String arr[] = al.get(i);
+                for (int j = 0; j < arr.length; j ++) {
+                    if ((tables.indexOf(arr[j]) == -1) && (!arr[j].equals(""))) {
+                        //TODO
+                        //create the tables
+                    }
+                }
+            }
+        }
+        catch (SQLException e) {
+            System.out.println("SQLException: " + e.getMessage());
+            System.out.println("SQLState: " + e.getSQLState());
+            System.out.println("VendorError: " + e.getErrorCode());
+        }
+    }
+    
     
     /*
     * returns: an ArrayList of Arrays of length POOL_SIZE
@@ -76,6 +117,14 @@ public class StockReader implements Runnable{
             int count = 0;
             String[] pool = new String[POOL_SIZE];
             while ((bufLine = br.readLine()) != null) {
+                if (bufLine.equals("")) {
+                    String[] lastPool = new String[count];
+                    for (int i = 0; i < count; i ++) {
+                        lastPool[i] = pool[i];
+                    }
+                    al.add(lastPool);
+                    break;
+                }
                 if (count < POOL_SIZE) {
                     pool[count] = bufLine;
                     count ++;
@@ -93,14 +142,19 @@ public class StockReader implements Runnable{
         return al;
     }
    
-    public static void main(String args[] ) {
+    public static void main(String[] args ) {
+    
         //parse the ticker file and prep the StockReader threads
         ArrayList<String[]> parsedTickers = parseTickerFile();
-        StockReader[] readers = new StockReader[parsedTickers.size()];
+        Thread[] readers = new Thread[parsedTickers.size()];
         for (int i = 0; i < parsedTickers.size(); i ++) {
-            readers[i] = new StockReader(parsedTickers.get(i));
+            readers[i] = new Thread(new StockReader(parsedTickers.get(i)));
         }
+        
         //start the threads!
+        for (int i = 0; i < readers.length; i ++) {
+            readers[i].start();
+        }
     }
  
 }
