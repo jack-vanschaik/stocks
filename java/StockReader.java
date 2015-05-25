@@ -23,7 +23,7 @@ javac -classpath .:/home/jack/code/stocks/java/lib/YahooFinanceAPI-1.3.0.jar Sto
 
 public class StockReader implements Runnable{
     
-    Connection connection;
+    public static Connection connection;
     public static final int POOL_SIZE = 100;
     public static final int SLEEP_TIME = 1000*60*5;
     public static final String TICKER_FILE = "tickers.txt";
@@ -36,7 +36,7 @@ public class StockReader implements Runnable{
     /*
     * Opens a connetion to the database and sets global variable
     */
-    public void openConnection () throws SQLException, IOException {
+    public static void openConnection () throws SQLException, IOException {
       	String url = "jdbc:mysql://localhost:3306/STOCKS";
       	String username = "root";
       	String password = "asecret";
@@ -103,13 +103,11 @@ public class StockReader implements Runnable{
     * If not, it creates it.
     */
     public void checkTables(ArrayList<String[]> al) {
-        Connection conn = null;
         Statement s = null;
         ResultSet res = null;
         try {
             //queries to get all the tables
-            conn = DriverManager.getConnection(MYSQL_CONNECTION);
-            s = conn.createStatement();
+            s = connection.createStatement();
             res = s.executeQuery("SHOW TABLES");
             //get the table list as an ArrayList for easy indexOf
             String[] ta = (String[])res.getArray(0).getArray();
@@ -121,8 +119,12 @@ public class StockReader implements Runnable{
                 String arr[] = al.get(i);
                 for (int j = 0; j < arr.length; j ++) {
                     if ((tables.indexOf(arr[j]) == -1) && (!arr[j].equals(""))) {
-                        //TODO
-                        //create the tables
+                        try {
+                            createTable(arr[j]);
+                        }
+                        catch (Exception e) {
+                            System.out.println("Couldn't make table" + arr[j]);
+                        }
                     }
                 }
             }
@@ -138,6 +140,9 @@ public class StockReader implements Runnable{
     /*
     * returns: an ArrayList of Arrays of length POOL_SIZE
     *  meant to open the tickers.txt file with all the stock ticker names
+    *
+    * NOTE: The way this works is kind of retarded. It has an array list of String[] arrays.
+    *       these are arrays of tickers, each handled by it's own thread
     */
     public static ArrayList<String[]> parseTickerFile() {
         return parseTickerFile(TICKER_FILE);
@@ -184,11 +189,18 @@ public class StockReader implements Runnable{
     
         //parse the ticker file and prep the StockReader threads
         ArrayList<String[]> parsedTickers = parseTickerFile();
+        //try to start a mysql connection
+        try {
+            openConnection();
+        }
+        catch (Exception e) {
+            System.out.println("Error connecting to mysql.");
+        }
+        //create threads
         Thread[] readers = new Thread[parsedTickers.size()];
         for (int i = 0; i < parsedTickers.size(); i ++) {
             readers[i] = new Thread(new StockReader(parsedTickers.get(i)));
         }
-        
         //start the threads!
         for (int i = 0; i < readers.length; i ++) {
             readers[i].start();
