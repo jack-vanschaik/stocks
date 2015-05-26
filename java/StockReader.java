@@ -38,17 +38,19 @@ public class StockReader implements Runnable{
     * Opens a connetion to the database and sets global variable
     */
     public static void openConnection () throws SQLException, IOException {
-        String url = "jdbc:mysql://localhost:3306/STOCKS";
+        String url = "jdbc:mysql://192.168.1.80:3306/STOCKS";
         String username = "root";
         String password = "asecret";
         connection = DriverManager.getConnection( url, username, password);
+        System.out.println("Connection to mysql database successful");
     }
 
     /*
     * Adds a new table with named by the ticker
     */
-    public void createTable( String ticker ) throws SQLException, IOException {
+    public static void createTable( String ticker ) throws SQLException, IOException {
         openConnection();
+        System.out.printf("Creating table for ticker %s\n", ticker);
         Statement stat = connection.createStatement();
         // Create the table for that stock ticker
         stat.executeUpdate("CREATE TABLE " + ticker + "(date DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, price FLOAT, PRIMARY KEY (date))");
@@ -101,7 +103,7 @@ public class StockReader implements Runnable{
     * Checks to see if each ticker has it's own table.
     * If not, it creates it.
     */
-    public void checkTables(ArrayList<String[]> al) {
+    public static void checkTables(ArrayList<String[]> al) {
         Statement s = null;
         ResultSet res = null;
         try {
@@ -111,14 +113,15 @@ public class StockReader implements Runnable{
             //get the table list as an ArrayList for easy indexOf
             String[] ta = (String[])res.getArray(0).getArray();
             ArrayList<String> tables = new ArrayList<String>(Arrays.asList(ta));
-            
+            System.out.printf("=> %d ticker tables already in database\n", tables.size());
             //look through our ArrayList of ticker pools and make sure each
             // ticker has it's own table
             for (int i = 0; i < al.size(); i ++ ) {
-                String arr[] = al.get(i);
+                String[] arr = al.get(i);
                 for (int j = 0; j < arr.length; j ++) {
                     if ((tables.indexOf(arr[j]) == -1) && (!arr[j].equals(""))) {
                         try {
+                            //create the table
                             createTable(arr[j]);
                         }
                         catch (Exception e) {
@@ -184,12 +187,28 @@ public class StockReader implements Runnable{
         return al;
     }
    
+    public static void displayTicker(ArrayList<String[]> al, boolean verbose) {
+        for (int i = 0; i < al.size(); i ++ ) {
+            String[] tickers = al.get(i);
+            System.out.printf("=> %d - ticker array of %d values\n", i, tickers.length);
+            if (verbose) {
+                for (int j = 0; j < tickers.length; j ++) {
+                     System.out.println(tickers[j]);
+                }
+            }
+        }
+    }
+
     public static void main(String[] args ) {
+        System.out.println("----- Booting up StockReader -----\n");
+
         //disable those pesky loggers
         resetLogManger();
         
         //parse the ticker file and prep the StockReader threads
         ArrayList<String[]> parsedTickers = parseTickerFile();
+        displayTicker(parsedTickers, false);
+
         //try to start a mysql connection
         try {
             openConnection();
@@ -202,6 +221,10 @@ public class StockReader implements Runnable{
         catch (Exception e) {
             System.out.println("You messed up really bad!");
         }
+
+        //prep the tables
+        checkTables(parsedTickers);
+
         //create threads
         Thread[] readers = new Thread[parsedTickers.size()];
         for (int i = 0; i < parsedTickers.size(); i ++) {
