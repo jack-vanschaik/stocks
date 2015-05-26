@@ -38,7 +38,7 @@ public class StockReader implements Runnable{
     * Opens a connetion to the database and sets global variable
     */
     public static void openConnection () throws SQLException, IOException {
-        String url = "jdbc:mysql://192.168.1.80:3306/STOCKS";
+        String url = "jdbc:mysql://localhost:3306/STOCKS";
         String username = "root";
         String password = "asecret";
         connection = DriverManager.getConnection( url, username, password);
@@ -49,11 +49,10 @@ public class StockReader implements Runnable{
     * Adds a new table with named by the ticker
     */
     public static void createTable( String ticker ) throws SQLException, IOException {
-        openConnection();
-        System.out.printf("Creating table for ticker %s\n", ticker);
+        System.out.printf("==> Creating table for ticker %s\n", ticker);
         Statement stat = connection.createStatement();
         // Create the table for that stock ticker
-        stat.executeUpdate("CREATE TABLE " + ticker + "(date DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, price FLOAT, PRIMARY KEY (date))");
+        stat.executeUpdate("CREATE TABLE " + ticker + " (price FLOAT)");
     }
     
     
@@ -111,8 +110,10 @@ public class StockReader implements Runnable{
             s = connection.createStatement();
             res = s.executeQuery("SHOW TABLES");
             //get the table list as an ArrayList for easy indexOf
-            String[] ta = (String[])res.getArray(0).getArray();
-            ArrayList<String> tables = new ArrayList<String>(Arrays.asList(ta));
+            ArrayList<String> tables = new ArrayList<String>();
+            while(res.next()) {
+                tables.add(res.getString(1));
+            }
             System.out.printf("=> %d ticker tables already in database\n", tables.size());
             //look through our ArrayList of ticker pools and make sure each
             // ticker has it's own table
@@ -125,13 +126,16 @@ public class StockReader implements Runnable{
                             createTable(arr[j]);
                         }
                         catch (Exception e) {
-                            System.out.println("Couldn't make table" + arr[j]);
+                            System.out.println("==> Couldn't make table " + arr[j]);
+                            System.out.println("       possibly because of SQL keyword");
+                            //e.printStackTrace();
                         }
                     }
                 }
             }
         }
         catch (SQLException e) {
+            e.printStackTrace();
             System.out.println("SQLException: " + e.getMessage());
             System.out.println("SQLState: " + e.getSQLState());
             System.out.println("VendorError: " + e.getErrorCode());
