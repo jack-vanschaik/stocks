@@ -3,9 +3,11 @@ import yahoofinance.quotes.stock.*;
 import java.math.*;
 import java.io.*;
 import java.util.*;
+import java.util.logging.LogManager;
+import java.util.Calendar;
 import java.lang.Thread;
 import java.sql.*;
-import java.util.logging.LogManager;
+
 
 /*
 * STRUCTURE:
@@ -23,6 +25,8 @@ public class StockReader implements Runnable{
     public static final int SLEEP_TIME = 1000*60*5;
     public static final String TICKER_FILE = "tickers.txt";
     public static Object key = new Object();
+    public static String tableColumns = 
+"()";
     private String[] tickerList;
     
     /*
@@ -96,6 +100,34 @@ public class StockReader implements Runnable{
     // TODO 
     public synchronized void mysqlDeposit(String tickerName, StockQuote squote) {
         //System.out.println(tickerName);
+        float a = squote.getAsk().floatValue();
+        int as = squote.getAskSize();
+        long av = squote.getAvgVolume();
+        float b = squote.getBid().floatValue();
+        float bs = squote.getBidSize();
+        float c = squote.getChange().floatValue();
+        float cfat = squote.getChangeFromAvg200().floatValue();
+        float cfaf = squote.getChangeFromAvg50().floatValue();
+        float cfyh = squote.getChangeFromYearHigh().floatValue();
+        float cfyl = squote.getChangeFromYearLow().floatValue();
+        int lts = squote.getLastTradeSize();
+        String ltt = squote.getLastTradeTime().toString();
+        float p = squote.getPrice().floatValue();
+        float pat = squote.getPriceAvg200().floatValue();
+        float paf = squote.getPriceAvg50().floatValue();
+        long v = squote.getVolume();
+        /*try {
+           String query = "INSERT INTO ? ( date , price ) VALUES ( DEFAULT , ? )";
+            PreparedStatement stat = connection.prepareStatement(query);
+            stat.setString( 1, ticker );
+            stat.setFloat( 2, price );
+            // For efficiency this could later be modified to insert multiple  
+            stat.close();
+        }*/
+        catch (Exception e) {
+        
+        }
+        
     }
     
     /*
