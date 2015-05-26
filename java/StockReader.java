@@ -7,6 +7,7 @@ import java.util.logging.LogManager;
 import java.util.Calendar;
 import java.lang.Thread;
 import java.sql.*;
+import java.lang.*;
 
 
 /*
@@ -26,7 +27,7 @@ public class StockReader implements Runnable{
     public static final String TICKER_FILE = "tickers.txt";
     public static Object key = new Object();
     public static String tableColumns = 
-"()";
+"( date DATE(), ask float(), askSize INT(), avgVol float(), bid float(), bidSize float(), change float(), changefvt float(), changefvf float(), changefyh float(), changefyl float(), lastTradeSize (), lastTradeTime varchar(256), price float(), pricevt float(), pricevf float())";
     private String[] tickerList;
     
     /*
@@ -56,7 +57,7 @@ public class StockReader implements Runnable{
         System.out.printf("==> Creating table for ticker %s\n", ticker);
         Statement stat = connection.createStatement();
         // Create the table for that stock ticker
-        stat.executeUpdate("CREATE TABLE " + ticker + " (price FLOAT)");
+        stat.executeUpdate("CREATE TABLE " + ticker + " " + tableColumns);
     }
     
     
@@ -100,32 +101,33 @@ public class StockReader implements Runnable{
     // TODO 
     public synchronized void mysqlDeposit(String tickerName, StockQuote squote) {
         //System.out.println(tickerName);
-        float a = squote.getAsk().floatValue();
-        int as = squote.getAskSize();
-        long av = squote.getAvgVolume();
-        float b = squote.getBid().floatValue();
-        float bs = squote.getBidSize();
-        float c = squote.getChange().floatValue();
-        float cfat = squote.getChangeFromAvg200().floatValue();
-        float cfaf = squote.getChangeFromAvg50().floatValue();
-        float cfyh = squote.getChangeFromYearHigh().floatValue();
-        float cfyl = squote.getChangeFromYearLow().floatValue();
-        int lts = squote.getLastTradeSize();
-        String ltt = squote.getLastTradeTime().toString();
-        float p = squote.getPrice().floatValue();
-        float pat = squote.getPriceAvg200().floatValue();
-        float paf = squote.getPriceAvg50().floatValue();
-        long v = squote.getVolume();
-        /*try {
-           String query = "INSERT INTO ? ( date , price ) VALUES ( DEFAULT , ? )";
+
+        try {
+            String query = "INSERT INTO ? ( date , ask, askSize, avgVol, bid, bidSize, change, changefvt, changefvf, changefyh, changefyl, lastTradeSize, lastTradeTime, price, pricevt, pricevf) VALUES (GETDATE(),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             PreparedStatement stat = connection.prepareStatement(query);
-            stat.setString( 1, ticker );
-            stat.setFloat( 2, price );
+            stat.setString( 1, tickerName );
+            stat.setBigDecimal(2 , squote.getAsk()); 
+            stat.setInt( 3, squote.getAskSize()); 
+            stat.setLong( 4 ,squote.getAvgVolume());
+            stat.setBigDecimal( 5 , squote.getBid());
+            stat.setInt( 6 , squote.getBidSize()); 
+            stat.setBigDecimal( 7 , squote.getChange());
+            stat.setBigDecimal( 8 , squote.getChangeFromAvg200());
+            stat.setBigDecimal( 9 , squote.getChangeFromAvg50());
+            stat.setBigDecimal( 10 , squote.getChangeFromYearHigh());
+            stat.setBigDecimal( 11 , squote.getChangeFromYearLow());
+            stat.setInt( 12, squote.getLastTradeSize());
+            stat.setDate( 13 , squote.getLastTradeTime().getTime());
+            stat.setBigDecimal( 14 , squote.getPrice());
+            stat.setBigDecimal( 15 , squote.getPriceAvg200());
+            stat.setBigDecimal( 16 , squote.getPriceAvg50());
+            stat.setLong(17, squote.getVolume()); 
             // For efficiency this could later be modified to insert multiple  
             stat.close();
-        }*/
+        }
         catch (Exception e) {
-        
+            System.out.println("Couldn't deposit into table " + tickerName);
+            e.printStackTrace();
         }
         
     }
@@ -255,7 +257,7 @@ public class StockReader implements Runnable{
             System.out.println(e.getSQLState());
         }
         catch (Exception e) {
-            System.out.println("You messed up really bad!");
+            System.out.println("Error opening connection");
         }
 
         //prep the tables
