@@ -5,12 +5,7 @@ import java.io.*;
 import java.util.*;
 import java.lang.Thread;
 import java.sql.*;
-
-/*
-java -classpath .:/home/jack/code/stocks/java/lib/YahooFinanceAPI-1.3.0.jar StockReader
-javac -classpath .:/home/jack/code/stocks/java/lib/YahooFinanceAPI-1.3.0.jar StockReader.java
-*/
-
+import java.util.logging.LogManager;
 
 /*
 * STRUCTURE:
@@ -27,46 +22,50 @@ public class StockReader implements Runnable{
     public static final int POOL_SIZE = 100;
     public static final int SLEEP_TIME = 1000*60*5;
     public static final String TICKER_FILE = "tickers.txt";
-    public static final String MYSQL_CONNECTION = 
-        "jdbc:mysql://localhost/test?user=root&password=asecret";
     public static Object key = new Object();
     private String[] tickerList;
     
+    /*
+    * The Yahoo Finanace API creates a lot of pesky logs by default. This
+    * will simply turn them off
+    */
+    public static void resetLogManger() {
+        LogManager l = LogManager.getLogManager();
+        l.reset();
+    }
     
     /*
     * Opens a connetion to the database and sets global variable
     */
     public static void openConnection () throws SQLException, IOException {
-      	String url = "jdbc:mysql://localhost:3306/STOCKS";
-      	String username = "root";
-      	String password = "asecret";
-
-		connection = DriverManager.getConnection( url, username, password);
-   	}
+        String url = "jdbc:mysql://localhost:3306/STOCKS";
+        String username = "root";
+        String password = "asecret";
+        connection = DriverManager.getConnection( url, username, password);
+    }
 
     /*
     * Adds a new table with named by the ticker
-    */	
-	public void createTable( String ticker ) throws SQLException, IOException {
-		openConnection();
+    */
+    public void createTable( String ticker ) throws SQLException, IOException {
+        openConnection();
         Statement stat = connection.createStatement();
-			
-		// Create the table for that stock ticker
+        // Create the table for that stock ticker
         stat.executeUpdate("CREATE TABLE " + ticker + "(date DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, price FLOAT, PRIMARY KEY (date))");
-	}
+    }
     
     
     /*
     * Adds a new price entry to the TICKER table with the current time and date
     */
     public void insertPrice ( String ticker, float price ) throws SQLException, IOException {
-		String query = "INSERT INTO ? ( date , price ) VALUES ( DEFAULT , ? )";
-		PreparedStatement stat = connection.prepareStatement(query);
-		stat.setString( 1, ticker );
-		stat.setFloat( 2, price );
+        String query = "INSERT INTO ? ( date , price ) VALUES ( DEFAULT , ? )";
+        PreparedStatement stat = connection.prepareStatement(query);
+        stat.setString( 1, ticker );
+        stat.setFloat( 2, price );
         // For efficiency this could later be modified to insert multiple  
-		stat.close();
-	}
+        stat.close();
+    }
     
     
     public StockReader(String[] tickerList) {
@@ -95,7 +94,7 @@ public class StockReader implements Runnable{
     
     // TODO 
     public synchronized void mysqlDeposit(String tickerName, StockQuote squote) {
-        System.out.println(tickerName);
+        //System.out.println(tickerName);
     }
     
     /*
@@ -186,15 +185,22 @@ public class StockReader implements Runnable{
     }
    
     public static void main(String[] args ) {
-    
+        //disable those pesky loggers
+        resetLogManger();
+        
         //parse the ticker file and prep the StockReader threads
         ArrayList<String[]> parsedTickers = parseTickerFile();
         //try to start a mysql connection
         try {
             openConnection();
         }
-        catch (Exception e) {
+        catch (SQLException e) {
             System.out.println("Error connecting to mysql.");
+            e.printStackTrace();
+            System.out.println(e.getSQLState());
+        }
+        catch (Exception e) {
+            System.out.println("You messed up really bad!");
         }
         //create threads
         Thread[] readers = new Thread[parsedTickers.size()];
