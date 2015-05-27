@@ -28,7 +28,11 @@ function fillCanvas(canvas) {
     canvas.ctx.fillRect(0, 0, canvas.x, canvas.y);
 }
 
-function graphData(canvas, data) {
+
+//graphs an array of number on the given canvas
+//canvas is an object {cxt, x, y}, so all drawing is done relative to the
+// size of the canvas; this function should work for any dimension canvas 
+function graphData(canvas, data, ticker) {
     //first draw all the data points
     var points = data.length;
     var xInc = canvas.x / points;
@@ -68,13 +72,12 @@ function graphData(canvas, data) {
     //canvas.ctx.font = "30px Arial";
     canvas.ctx.beginPath()
     canvas.ctx.fillStyle = "#000000";
-    canvas.ctx.font = "32 px Arial";
+    canvas.ctx.font = "16px Arial";
     var minStr = "Minimum price: " + min.toString();
     var maxStr = "Maxmimum price: " + max.toString();
-    console.log(minStr);
-    console.log(maxStr);
     canvas.ctx.fillText(minStr, 32, canvas.y  - 32);
-    canvas.ctx.fillText(maxStr, 32, 32);
+    canvas.ctx.fillText(maxStr, 32, 64);
+    canvas.ctx.fillText(ticker, 32, 32);
     canvas.ctx.fill();
     canvas.ctx.stroke();
 
@@ -111,7 +114,7 @@ function graphData(canvas, data) {
   <div class="panel panel-info">
   <div class="panel-heading">Tracking:</div>
   <div class="panel-body">
-    <?php echo getTableCount($con); ?> stock tickers
+    <?php echo getTableCount($con); ?> NASDAQ stock tickers
   </div>
   </div>
 <form class="form-horizontal" action="index.php" method="GET">
@@ -125,7 +128,7 @@ function graphData(canvas, data) {
     </div>
     <div class="form-group">
       <div class="col-lg-10 col-lg-offset-2">
-        <input type="submit" class="btn btn-primary">&nbsp Graph Today's Stock Data</input>
+        <button type="submit" class="btn btn-primary" >Graph Today's Prices</button>
       </div>
     </div>
   </fieldset>
@@ -167,15 +170,17 @@ fillCanvas(canvas);
 if (isset($_GET["ticker"])) {
     $data = getDailyPrices($con, $_GET["ticker"]);
     echo "var data = $data;\n";
+    echo "var ticker = \"" . $_GET["ticker"] . "\"";
 }
 else {
     echo "var data = [0];\n";
+    echo "var ticker = \"no ticker\"";
 }
 
 ?>
 
 if (data.length > 1) {
-    graphData(canvas, data);
+    graphData(canvas, data, ticker);
 }
 </script>
  </html>
