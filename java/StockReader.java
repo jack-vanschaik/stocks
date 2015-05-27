@@ -105,7 +105,7 @@ public class StockReader implements Runnable{
                 System.out.printf("=> Updated %d tickers, %s through %s\n", l, tickerList[0], tickerList[l - 1]);
                 Calendar c = Calendar.getInstance();
                 c.setTime(new Date());
-                if (c.get(Calendar.HOUR_OF_DAY) >= 4) {
+                if (c.get(Calendar.HOUR_OF_DAY) >= 16) {
                     loop = false;
                 }
                 else {
