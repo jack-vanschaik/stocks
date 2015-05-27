@@ -5,6 +5,7 @@ import java.io.*;
 import java.util.*;
 import java.util.logging.LogManager;
 import java.util.Calendar;
+import java.util.Date;
 import java.lang.Thread;
 import java.sql.*;
 import java.lang.*;
@@ -102,7 +103,14 @@ public class StockReader implements Runnable{
                 }
                 int l = this.tickerList.length;
                 System.out.printf("=> Updated %d tickers, %s through %s\n", l, tickerList[0], tickerList[l - 1]);
-                Thread.sleep(SLEEP_TIME);
+                Calendar c = Calendar.getInstance();
+                c.setTime(new Date());
+                if (c.get(Calendar.HOUR_OF_DAY) >= 4) {
+                    loop = false;
+                }
+                else {
+                    Thread.sleep(SLEEP_TIME);
+                }
             }
             catch (InterruptedException e) {
                 System.out.println("Thread interrupted!");
