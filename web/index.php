@@ -1,17 +1,6 @@
 <?php
 
-//simply gets the number of tables in the database
-function getTableCount($con) {
-    $q = "SELECT COUNT(*) from information_schema.tables WHERE table_type = 'base table'";
-    $result = mysqli_query($con, $q);
-    if (mysqli_num_rows($result)->num_rows > 0) {
-        $row = mysqli_fetch_assoc($result);
-        return $row["COUNT(*)"];
-    }
-    else {
-        return "0";
-    }
-}
+include "functions.php";
 
 $host = "localhost";
 $user = "root";
@@ -28,8 +17,70 @@ if ($con->connect_error) {
  <!DOCTYPE html>
  <html lang="en">
  <head>
+ <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <title> STOCKS Web Interface </title>
     <link href="css/bootstrap.min.css" rel="stylesheet">
+    
+<script type="text/javascript">
+
+function fillCanvas(canvas) {
+    canvas.ctx.fillStyle = "#FFFFFF";
+    canvas.ctx.fillRect(0, 0, canvas.x, canvas.y);
+}
+
+function graphData(canvas, data) {
+    //first draw all the data points
+    var points = data.length;
+    var xInc = canvas.x / points;
+    var xOffset = xInc/2;
+    var min = Math.min(...data);
+    var max = Math.max(...data);
+    var yRange = max - min;
+    console.log(yRange);
+    var yk = canvas.y/yRange; // a constant to save computation
+    canvas.ctx.beginPath();
+    canvas.ctx.moveTo(xOffset, canvas.y - (yk*(data[0] - min)));
+    for (var i = 1; i < points; i ++ ) {
+        //console.log(data[i]);
+        canvas.ctx.lineTo(xOffset + (i * xInc), canvas.y - (yk*(data[i]- min)));
+    }
+    canvas.ctx.strokeStyle = "#FF0000";
+    canvas.ctx.lineWidth = "5";
+    canvas.ctx.stroke();
+    
+    
+    //then draw the grid
+    canvas.ctx.beginPath();
+    canvas.ctx.moveTo(0,0);
+    canvas.ctx.lineTo(0,canvas.y);
+    canvas.ctx.lineTo(canvas.x,canvas.y);
+    canvas.ctx.strokeStyle = "#000000";
+    canvas.ctx.stroke();
+    canvas.ctx.beginPath();
+    for (var i =0; i < points; i ++ ) {
+        canvas.ctx.moveTo(xOffset + (i*xInc), canvas.y);
+        canvas.ctx.lineTo(xOffset + (i*xInc), canvas.y - 10);
+    }
+    canvas.ctx.lineWidth = "1";
+    canvas.ctx.stroke();
+    
+    //write some info in that bee-yotch
+    //canvas.ctx.font = "30px Arial";
+    canvas.ctx.beginPath()
+    canvas.ctx.fillStyle = "#000000";
+    canvas.ctx.font = "32 px Arial";
+    var minStr = "Minimum price: " + min.toString();
+    var maxStr = "Maxmimum price: " + max.toString();
+    console.log(minStr);
+    console.log(maxStr);
+    canvas.ctx.fillText(minStr, 32, canvas.y  - 32);
+    canvas.ctx.fillText(maxStr, 32, 32);
+    canvas.ctx.fill();
+    canvas.ctx.stroke();
+
+}
+</script>
+    
  </head>
  <body>
  
@@ -53,12 +104,78 @@ if ($con->connect_error) {
   </div>
 </nav>
 
-<div class="panel panel-default">
+<div class="row">
+<div class="col-lg-4">
+<div class="bs-component">
+
+  <div class="panel panel-info">
   <div class="panel-heading">Tracking:</div>
   <div class="panel-body">
-    <?php getTableCount($con); ?> stock tickers
+    <?php echo getTableCount($con); ?> stock tickers
+  </div>
+  </div>
+<form class="form-horizontal" action="index.php" method="GET">
+  <fieldset>
+    <legend>Actions</legend>
+    <div class="form-group">
+      <label for="inputEmail" class="col-lg-2 control-label">Ticker</label>
+      <div class="col-lg-10">
+        <input class="form-control" id="inputTicker" name="ticker" placeholder="TICKER" type="text">
+      </div>
+    </div>
+    <div class="form-group">
+      <div class="col-lg-10 col-lg-offset-2">
+        <input type="submit" class="btn btn-primary">&nbsp Graph Today's Stock Data</input>
+      </div>
+    </div>
+  </fieldset>
+</form>
+
+</div>
+</div>
+<div class="col-lg-6">
+<div class="bs-component">
+
+
+<div class="panel panel-primary">
+  <div class="panel-heading">
+    <h3 class="panel-title">Graph</h3>
+  </div>
+  <div class="panel-body">
+    <center>
+    <canvas id="stockGraph" width="512" height="256"></canvas>
+    </center>
   </div>
 </div>
 
+
+</div>
+</div>
+
+</div>
+</div>
+</div>
+
  </body>
+ <script type="text/javascript">
+var c = document.getElementById("stockGraph");
+var ctx = c.getContext("2d");
+canvas = {ctx:ctx, x:512, y:256};
+
+fillCanvas(canvas);
+<?php
+if (isset($_GET["ticker"])) {
+    $data = getDailyPrices($con, $_GET["ticker"]);
+    echo "var data = $data;\n";
+}
+else {
+    echo "var data = [0];\n";
+}
+
+?>
+
+if (data.length > 1) {
+    graphData(canvas, data);
+}
+</script>
  </html>
