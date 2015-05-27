@@ -9,6 +9,14 @@ import java.lang.Thread;
 import java.sql.*;
 import java.lang.*;
 
+/*
+* ---------> BUGS NEEDING FIXED:
+*
+*  -  updateTables doesn't do the last element of the ArrayList
+*  -  tickers with mysql keyword names can't be made into tables
+*  -  getLastTradeTime column is blank
+*
+*/
 
 /*
 * STRUCTURE:
@@ -26,10 +34,13 @@ public class StockReader implements Runnable{
     public static final int SLEEP_TIME = 1000*60*5;
     public static final String TICKER_FILE = "tickers.txt";
     public static Object key = new Object();
-    public static String tableColumns = 
-"( date DATE(), ask float(), askSize INT(), avgVol float(), bid float(), bidSize float(), change float(), changefvt float(), changefvf float(), changefyh float(), changefyl float(), lastTradeSize (), lastTradeTime varchar(256), price float(), pricevt float(), pricevf float())";
+    public static String tableColumns =
+"( time TIMESTAMP DEFAULT CURRENT_TIMESTAMP , ask DECIMAL(32, 8), askSize INT, avgVol DECIMAL(32,8), bid DECIMAL(32, 8)," +
+" bidSize DECIMAL(32,8), chng DECIMAL(32,8), changefvt DECIMAL(32,8), changefvf DECIMAL(32,8)," +
+" changefyh DECIMAL(32,8), changefyl DECIMAL(32,8), lastTradeSize DECIMAL(32,8), " +
+"lastTradeTime varchar(256), price DECIMAL(32, 8), pricevt DECIMAL(32, 8), pricevf DECIMAL(32, 8))";
     private String[] tickerList;
-    
+
     /*
     * The Yahoo Finanace API creates a lot of pesky logs by default. This
     * will simply turn them off
@@ -54,7 +65,7 @@ public class StockReader implements Runnable{
     * Adds a new table with named by the ticker
     */
     public static void createTable( String ticker ) throws SQLException, IOException {
-        System.out.printf("==> Creating table for ticker %s\n", ticker);
+        System.out.printf("=> Creating table for ticker %s\n", ticker);
         Statement stat = connection.createStatement();
         // Create the table for that stock ticker
         stat.executeUpdate("CREATE TABLE " + ticker + " " + tableColumns);
@@ -89,6 +100,8 @@ public class StockReader implements Runnable{
                     StockQuote sq = st.getQuote();
                     mysqlDeposit(tick, sq );
                 }
+                int l = this.tickerList.length;
+                System.out.printf("=> Updated %d tickers, %s through %s\n", l, tickerList[0], tickerList[l - 1]);
                 Thread.sleep(SLEEP_TIME);
             }
             catch (InterruptedException e) {
@@ -103,31 +116,33 @@ public class StockReader implements Runnable{
         //System.out.println(tickerName);
 
         try {
-            String query = "INSERT INTO ? ( date , ask, askSize, avgVol, bid, bidSize, change, changefvt, changefvf, changefyh, changefyl, lastTradeSize, lastTradeTime, price, pricevt, pricevf) VALUES (GETDATE(),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+            String query = "INSERT INTO " + tickerName + " (ask, askSize, avgVol, bid, bidSize, chng, changefvt, " + 
+                           "changefvf, changefyh, changefyl, lastTradeSize, lastTradeTime, price, " + 
+                           "pricevt, pricevf) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
             PreparedStatement stat = connection.prepareStatement(query);
-            stat.setString( 1, tickerName );
-            stat.setBigDecimal(2 , squote.getAsk()); 
-            stat.setInt( 3, squote.getAskSize()); 
-            stat.setLong( 4 ,squote.getAvgVolume());
-            stat.setBigDecimal( 5 , squote.getBid());
-            stat.setInt( 6 , squote.getBidSize()); 
-            stat.setBigDecimal( 7 , squote.getChange());
-            stat.setBigDecimal( 8 , squote.getChangeFromAvg200());
-            stat.setBigDecimal( 9 , squote.getChangeFromAvg50());
-            stat.setBigDecimal( 10 , squote.getChangeFromYearHigh());
-            stat.setBigDecimal( 11 , squote.getChangeFromYearLow());
-            stat.setInt( 12, squote.getLastTradeSize());
-            stat.setDate( 13 , squote.getLastTradeTime().getTime());
-            stat.setBigDecimal( 14 , squote.getPrice());
-            stat.setBigDecimal( 15 , squote.getPriceAvg200());
-            stat.setBigDecimal( 16 , squote.getPriceAvg50());
-            stat.setLong(17, squote.getVolume()); 
+            stat.setBigDecimal(1 , squote.getAsk()); 
+            stat.setInt( 2, squote.getAskSize()); 
+            stat.setLong( 3 ,squote.getAvgVolume());
+            stat.setBigDecimal( 4 , squote.getBid());
+            stat.setInt( 5 , squote.getBidSize()); 
+            stat.setBigDecimal( 6 , squote.getChange());
+            stat.setBigDecimal( 7 , squote.getChangeFromAvg200());
+            stat.setBigDecimal( 8 , squote.getChangeFromAvg50());
+            stat.setBigDecimal( 9 , squote.getChangeFromYearHigh());
+            stat.setBigDecimal( 10 , squote.getChangeFromYearLow());
+            stat.setInt( 11, squote.getLastTradeSize());
+            stat.setString( 12 , " "); //TODO: Fix this using squote.getLastTradeTime()
+            stat.setBigDecimal( 13 , squote.getPrice());
+            stat.setBigDecimal( 14 , squote.getPriceAvg200());
+            stat.setBigDecimal( 15 , squote.getPriceAvg50());
+            stat.executeUpdate();
             // For efficiency this could later be modified to insert multiple  
             stat.close();
         }
         catch (Exception e) {
             System.out.println("Couldn't deposit into table " + tickerName);
             e.printStackTrace();
+            System.exit(0);
         }
         
     }
@@ -160,9 +175,11 @@ public class StockReader implements Runnable{
                             createTable(arr[j]);
                         }
                         catch (Exception e) {
-                            System.out.println("==> Couldn't make table " + arr[j]);
+                            System.out.println("=> Couldn't make table " + arr[j]);
                             System.out.println("       possibly because of SQL keyword");
                             //e.printStackTrace();
+                            //System.out.println("=> debug exit");
+                            //System.exit(0);
                         }
                     }
                 }
@@ -264,11 +281,13 @@ public class StockReader implements Runnable{
         checkTables(parsedTickers);
 
         //create threads
+        System.out.println("=> Creating threads");
         Thread[] readers = new Thread[parsedTickers.size()];
         for (int i = 0; i < parsedTickers.size(); i ++) {
             readers[i] = new Thread(new StockReader(parsedTickers.get(i)));
         }
         //start the threads!
+        System.out.println("=> Starting threads");
         for (int i = 0; i < readers.length; i ++) {
             readers[i].start();
         }
