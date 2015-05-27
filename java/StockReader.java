@@ -149,8 +149,8 @@ public class StockReader implements Runnable{
         }
         catch (Exception e) {
             System.out.println("Couldn't deposit into table " + tickerName);
-            e.printStackTrace();
-            System.exit(0);
+            //e.printStackTrace();
+            //System.exit(0);
         }
         
     }
