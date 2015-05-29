@@ -1,0 +1,20 @@
+TODO LIST
+
+** web
+
+    - table generation function for an n x m array of data
+    - function to turn a SELECT statement into an n x m array
+    - more powerful canvas interface, graph multiple tickers, data, etc
+    - javascript scripts on a seperate page
+    - php include for header html
+    
+** java 
+
+    - updateTables doesn't do the last element of the ArrayList
+    - tickers with mysql keyword names can't be made into tables
+    - getLastTradeTime column is blank
+    
+** tools
+
+    - write FAST statistical methods for parsing the data (look for libraries that do this)
+        = variance, covariance, sum of squares etc
