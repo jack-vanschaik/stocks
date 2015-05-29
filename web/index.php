@@ -12,6 +12,13 @@ $con = new mysqli($host, $user, $pass, $dbname);
 if ($con->connect_error) {
     die("Connection failed:" . $con->connect_error);
 }
+
+if (isset($_GET["ticker"])) {
+    $ticker = $_GET["ticker"];
+}
+else {
+    $ticker = "WOOD";
+}
 ?>
 
  <!DOCTYPE html>
@@ -129,7 +136,7 @@ function graphData(canvas, data, ticker) {
     </div>
     <div class="form-group">
       <div class="col-lg-10 col-lg-offset-2">
-        <button type="submit" class="btn btn-primary" >Graph Today's Prices</button>
+        <button type="submit" class="btn btn-primary" >Lookup Stock</button>
       </div>
     </div>
   </fieldset>
@@ -143,7 +150,7 @@ function graphData(canvas, data, ticker) {
 
 <div class="panel panel-primary">
   <div class="panel-heading">
-    <h3 class="panel-title">Graph</h3>
+    <h3 class="panel-title">Graph of Today's Prices</h3>
   </div>
   <div class="panel-body">
     <center>
@@ -156,10 +163,23 @@ function graphData(canvas, data, ticker) {
 </div>
 </div>
 
-</div>
+
+<!-- Start of Yahoo! Finance code -->
+
+<iframe allowtransparency="true" marginwidth="0" marginheight="0" hspace="0" vspace="0" frameborder="0" scrolling="no" src="http://badge.finance.yahoo.com/instrument/1.0/<?php echo $ticker; ?>/badge;chart=5d;news=5;quote/HTML?AppID=N8scBZu.w2DMtDnxMpXakbOH.jObQ7k5&sig=NYmQ_Sp8TTSbZfgnG2BgwE.TfN4-&t=1432863813296" width="200px" height="709px"><a href="http://finance.yahoo.com">Yahoo! Finance</a><br/><a href="http://finance.yahoo.com/q?s=<?php echo $ticker; ?>/">Quote for <?php echo $ticker; ?>/</a></iframe>
+<!-- End of Yahoo! Finance code -->
+
 </div>
 </div>
 
+</div>
+
+<?php
+if (isset($_GET["ticker"])) {
+    echo getDailyData($con, $_GET["ticker"]);
+}
+
+?>
  </body>
  <script type="text/javascript">
 var c = document.getElementById("stockGraph");

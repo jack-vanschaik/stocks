@@ -28,6 +28,35 @@ function getDailyPrices($con, $ticker) {
     return "[" . $buf . "0]";
 }
 
+function getDailyData($con, $ticker) {
+    $t = preg_replace("/[^a-zA-Z0-9]+/", "", $ticker);
+    $today = date("o-m-d", time());
+    $columns = "time,ask,askSize,avgVol,bid,bidSize,chng,changefvt,changefvf,changefyh,changefyl,"; $columns = $columns . "lastTradeSize,price,pricevt,pricevf";
+    $q = "SELECT $columns FROM $t WHERE time BETWEEN '$today 9:30:00' AND '$today 16:00:00'";
+    $result = mysqli_query($con, $q);
+    if (!$result) {
+        return "no data";
+    }
+    $body = "";
+    $head = "";
+    $columnList = explode(",", $columns);
+    for ($i = 0; $i < 15; $i ++ ){
+        $head = $head."\n<th>".$columnList[$i]."</th>";
+    }
+    $head = "<table class=\"table table-striped table-hover \"><tr>$head</tr><tbody>";
+    $tail = "</tbody></table>";
+    
+    while ($row = $result->fetch_array(MYSQL_NUM)) {
+        $body = $body . "<tr>";
+        for ($i = 0; $i < 15; $i ++ ){
+            $body = $body . "<td>" . $row[$i] . "</td>";
+        }
+        $body = $body . "</tr>\n";
+    }
+    
+    return $head . $body . $tail;
+}
+
 function entireMarket($con) {
     $buf = "";
     $q1 = "SELECT TABLE_NAME FROM information_schema.tables WHERE TABLE_SCHEMA='STOCKS'";
@@ -53,7 +82,7 @@ function entireMarket($con) {
 
 }
 
-
+/*
 $host = "localhost";
 $user = "root";
 $pass = "asecret";
@@ -65,6 +94,6 @@ if ($con->connect_error) {
     die("Connection failed:" . $con->connect_error);
 } 
 
-//echo entireMarket($con);
-
+echo getDailyData($con, "WOOD");
+*/
 ?>
