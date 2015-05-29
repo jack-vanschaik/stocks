@@ -29,10 +29,31 @@ function getDailyPrices($con, $ticker) {
 }
 
 function entireMarket($con) {
+    $buf = "";
+    $q1 = "SELECT TABLE_NAME FROM information_schema.tables WHERE TABLE_SCHEMA='STOCKS'";
+    $result = mysqli_query($con, $q1);
+    if (!$result) {
+        return "";
+    }
+    $tableList = array();
+    while ($row = $result->fetch_array(MYSQL_NUM)) {
+        $table = $row[0];
+        array_push($tableList, $table);
+    }
+    for ($i = 0; $i < count($tableList); $i ++ ) {
+        $table = $tableList[$i];
+        $q2 = "SELECT price FROM $table WHERE time = (SELECT MAX(time) FROM $table WHERE TRUE);";
+        $result2 = mysqli_query($con, $q2);
+        $row2 = $result2->fetch_array(MYSQL_NUM);
+        $price = $row2[0];
+        //echo $price." ";
+        $buf = $buf . "\n<tr><td>$table</td><td>$price</td><td><a href=\"index.php?ticker=$table\" class=\"btn btn-info\">Graph $table</a></td></tr>";
+    }
+    return "<table class=\"table table-striped table-hover \" ><tr><th>ticker</th><th>price</th><th>button</th></tr><tbody>$buf\n</tbody></table>";
 
 }
 
-/*
+
 $host = "localhost";
 $user = "root";
 $pass = "asecret";
@@ -43,7 +64,7 @@ $con = new mysqli($host, $user, $pass, $dbname);
 if ($con->connect_error) {
     die("Connection failed:" . $con->connect_error);
 } 
-echo getDailyPrices($con, "WOOD");
-*/
+
+//echo entireMarket($con);
 
 ?>

@@ -48,6 +48,15 @@ if ($con->connect_error) {
 
 <!-- end navbar -->
 
+<div class="col-lg-6">
+<div class="bs-component">
+
+
+<?php echo entireMarket($con); ?>
+
+</div>
+</div>
+
 
 
  </body>
