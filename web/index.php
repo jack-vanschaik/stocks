@@ -87,6 +87,7 @@ function graphData(canvas, data, ticker) {
  </head>
  <body>
  
+<!-- navbar -->
  
  <nav class="navbar navbar-default">
   <div class="container-fluid">
@@ -97,11 +98,11 @@ function graphData(canvas, data, ticker) {
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button>
-      <a class="navbar-brand" href="#">STOCKS Web Interface</a>
+      <a class="navbar-brand" href="index.php">STOCKS Web Interface</a>
     </div>
     <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
       <ul class="nav navbar-nav">
-        <li><a href="#">Link</a></li>
+        <li><a href="market.php">Check the entire market</a></li>
       </ul>
     </div>
   </div>
